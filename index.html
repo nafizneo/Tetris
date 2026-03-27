@@ -3,581 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Racer</title>
+    <title>Tetris Pro | Logic & AI Demo</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap');
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg: #0a0a0c;
+            --panel: #16161e;
+            --text: #c0caf5;
+            --accent: #7aa2f7;
+            --ghost: rgba(255, 255, 255, 0.15);
         }
-        
+
         body {
-            font-family: 'Rajdhani', sans-serif;
-            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
             overflow: hidden;
-            color: white;
         }
-        
-        #gameCanvas {
+
+        #game-container {
+            display: grid;
+            grid-template-columns: 150px 320px 200px;
+            gap: 20px;
+            padding: 20px;
+            background: var(--panel);
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .stats-box {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #2f334d;
+        }
+
+        .label { font-size: 12px; color: #565f89; text-transform: uppercase; margin-bottom: 5px; }
+        .value { font-size: 24px; font-weight: bold; color: var(--accent); }
+
+        canvas {
+            background: #1a1b26;
+            border: 2px solid #2f334d;
+            border-radius: 4px;
             display: block;
-            background: linear-gradient(180deg, #87CEEB 0%, #4682B4 30%, #2F4F4F 100%);
         }
-        
-        #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            font-weight: 600;
+
+        #hold-canvas, #next-canvas { background: transparent; border: none; }
+
+        .controls {
+            grid-column: span 3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #565f89;
         }
-        
-        #speed {
-            font-size: 28px;
-            color: #00ff41;
-            text-shadow: 0 0 10px #00ff41;
-            margin-bottom: 10px;
-        }
-        
-        #score {
-            font-size: 24px;
-            color: #ff6b35;
-            text-shadow: 0 0 10px #ff6b35;
-        }
-        
-        #distance {
-            font-size: 20px;
-            color: #00d4ff;
-            text-shadow: 0 0 10px #00d4ff;
-        }
-        
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            font-size: 16px;
-            color: rgba(255, 255, 255, 0.8);
-            z-index: 10;
-        }
-        
-        #gameOver {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px;
-            border-radius: 20px;
-            border: 2px solid #ff6b35;
-            box-shadow: 0 0 50px rgba(255, 107, 53, 0.5);
-            z-index: 100;
+
+        .ai-badge {
+            background: #f7768e;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
             display: none;
         }
         
-        #gameOver h2 {
-            font-size: 36px;
-            color: #ff6b35;
-            margin-bottom: 20px;
-            text-shadow: 0 0 20px #ff6b35;
-        }
-        
-        #finalStats {
-            margin: 20px 0;
-            font-size: 18px;
-        }
-        
-        #restartBtn {
-            padding: 15px 30px;
-            background: linear-gradient(45deg, #00ff41, #00d4ff);
-            border: none;
-            border-radius: 25px;
-            color: #000;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 20px;
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.5);
-            transition: all 0.3s ease;
-            margin-top: 20px;
-        }
-        
-        #restartBtn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 30px rgba(0, 255, 65, 0.8);
-        }
-        
-        .speedometer {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            width: 120px;
-            height: 120px;
-            border: 3px solid #00ff41;
-            border-radius: 50%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 10;
-        }
-        
-        .speedometer-needle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 2px;
-            height: 50px;
-            background: #ff6b35;
-            transform-origin: bottom center;
-            transform: translate(-50%, -100%) rotate(0deg);
-            box-shadow: 0 0 10px #ff6b35;
-            transition: transform 0.1s ease;
-        }
-        
-        .speedometer-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 10px;
-            height: 10px;
-            background: #00ff41;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px #00ff41;
-        }
+        .ai-active .ai-badge { display: inline-block; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui">
-        <div id="speed">Speed: 0 km/h</div>
-        <div id="score">Score: 0</div>
-        <div id="distance">Distance: 0m</div>
-    </div>
-    
-    <div id="controls">
-        <div>🏎️ Use ARROW KEYS or WASD to control your car</div>
-        <div>🎯 Avoid other cars and collect power-ups!</div>
-    </div>
-    
-    <div class="speedometer">
-        <div class="speedometer-needle" id="needle"></div>
-        <div class="speedometer-center"></div>
-    </div>
-    
-    <div id="gameOver">
-        <h2>Race Finished!</h2>
-        <div id="finalStats">
-            <div>Final Score: <span id="finalScore">0</span></div>
-            <div>Distance Traveled: <span id="finalDistance">0</span>m</div>
-            <div>Max Speed: <span id="maxSpeed">0</span> km/h</div>
+
+<div id="game-container">
+    <!-- Left Side: Hold -->
+    <div class="side-panel">
+        <div class="stats-box">
+            <div class="label">Hold</div>
+            <canvas id="hold-canvas" width="100" height="100"></canvas>
         </div>
-        <button id="restartBtn">Race Again</button>
+        <div class="stats-box">
+            <div class="label">Level</div>
+            <div id="level" class="value">1</div>
+        </div>
+        <div class="stats-box">
+            <div class="label">Lines</div>
+            <div id="lines" class="value">0</div>
+        </div>
     </div>
-    
-    <script>
-        class NeonRacer {
-            constructor() {
-                this.canvas = document.getElementById('gameCanvas');
-                this.ctx = this.canvas.getContext('2d');
-                
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
-                
-                this.gameRunning = true;
-                this.score = 0;
-                this.distance = 0;
-                this.maxSpeedReached = 0;
-                
-                // Player car
-                this.player = {
-                    x: this.canvas.width / 2,
-                    y: this.canvas.height - 150,
-                    width: 40,
-                    height: 80,
-                    speed: 0,
-                    maxSpeed: 12,
-                    acceleration: 0.3,
-                    friction: 0.1,
-                    turnSpeed: 0
-                };
-                
-                // Game objects
-                this.cars = [];
-                this.powerUps = [];
-                this.roadLines = [];
-                this.particles = [];
-                
-                // Road
-                this.roadWidth = 400;
-                this.roadOffset = 0;
-                this.roadSpeed = 2;
-                
-                // Input
-                this.keys = {};
-                
-                this.init();
-                this.createRoadLines();
-                this.gameLoop();
-            }
-            
-            init() {
-                // Keyboard events
-                document.addEventListener('keydown', (e) => {
-                    this.keys[e.key.toLowerCase()] = true;
-                });
-                
-                document.addEventListener('keyup', (e) => {
-                    this.keys[e.key.toLowerCase()] = false;
-                });
-                
-                // Restart button
-                document.getElementById('restartBtn').addEventListener('click', () => {
-                    this.restart();
-                });
-                
-                // Window resize
-                window.addEventListener('resize', () => {
-                    this.canvas.width = window.innerWidth;
-                    this.canvas.height = window.innerHeight;
-                    this.player.x = this.canvas.width / 2;
-                });
-            }
-            
-            createRoadLines() {
-                for (let i = 0; i < 20; i++) {
-                    this.roadLines.push({
-                        y: i * 60 - 100,
-                        width: 8,
-                        height: 40
-                    });
-                }
-            }
-            
-            createEnemyCar() {
-                const lanes = [
-                    this.canvas.width / 2 - 120,
-                    this.canvas.width / 2 - 40,
-                    this.canvas.width / 2 + 40,
-                    this.canvas.width / 2 + 120
-                ];
-                
-                this.cars.push({
-                    x: lanes[Math.floor(Math.random() * lanes.length)],
-                    y: -100,
-                    width: 35,
-                    height: 70,
-                    speed: Math.random() * 3 + 2,
-                    color: this.getRandomCarColor()
-                });
-            }
-            
-            createPowerUp() {
-                this.powerUps.push({
-                    x: this.canvas.width / 2 + (Math.random() - 0.5) * this.roadWidth,
-                    y: -50,
-                    width: 25,
-                    height: 25,
-                    type: Math.random() > 0.5 ? 'speed' : 'score',
-                    rotation: 0
-                });
-            }
-            
-            createParticle(x, y, color) {
-                for (let i = 0; i < 8; i++) {
-                    this.particles.push({
-                        x: x,
-                        y: y,
-                        vx: (Math.random() - 0.5) * 8,
-                        vy: (Math.random() - 0.5) * 8,
-                        size: Math.random() * 4 + 2,
-                        color: color,
-                        life: 30,
-                        maxLife: 30
-                    });
-                }
-            }
-            
-            getRandomCarColor() {
-                const colors = ['#ff4757', '#3742fa', '#2ed573', '#ffa502', '#ff6348', '#5f27cd'];
-                return colors[Math.floor(Math.random() * colors.length)];
-            }
-            
-            update() {
-                if (!this.gameRunning) return;
-                
-                // Player input
-                if (this.keys['arrowup'] || this.keys['w']) {
-                    this.player.speed = Math.min(this.player.speed + this.player.acceleration, this.player.maxSpeed);
-                } else if (this.keys['arrowdown'] || this.keys['s']) {
-                    this.player.speed = Math.max(this.player.speed - this.player.acceleration * 2, -this.player.maxSpeed / 2);
-                } else {
-                    this.player.speed *= (1 - this.player.friction);
-                }
-                
-                if (this.keys['arrowleft'] || this.keys['a']) {
-                    this.player.turnSpeed = -8;
-                } else if (this.keys['arrowright'] || this.keys['d']) {
-                    this.player.turnSpeed = 8;
-                } else {
-                    this.player.turnSpeed *= 0.8;
-                }
-                
-                // Move player
-                this.player.x += this.player.turnSpeed;
-                this.player.x = Math.max(this.canvas.width / 2 - this.roadWidth / 2 + 20, 
-                                Math.min(this.player.x, this.canvas.width / 2 + this.roadWidth / 2 - 20));
-                
-                // Update road
-                this.roadOffset += this.roadSpeed + this.player.speed;
-                this.roadLines.forEach(line => {
-                    line.y += this.roadSpeed + this.player.speed;
-                    if (line.y > this.canvas.height) {
-                        line.y = -60;
-                    }
-                });
-                
-                // Spawn cars
-                if (Math.random() < 0.02) {
-                    this.createEnemyCar();
-                }
-                
-                // Spawn power-ups
-                if (Math.random() < 0.005) {
-                    this.createPowerUp();
-                }
-                
-                // Update cars
-                this.cars.forEach((car, index) => {
-                    car.y += car.speed + this.player.speed;
-                    
-                    // Remove off-screen cars
-                    if (car.y > this.canvas.height + 100) {
-                        this.cars.splice(index, 1);
-                        this.score += 10;
-                    }
-                    
-                    // Collision detection
-                    if (this.checkCollision(this.player, car)) {
-                        this.createParticle(car.x, car.y, car.color);
-                        this.gameOver();
-                    }
-                });
-                
-                // Update power-ups
-                this.powerUps.forEach((powerUp, index) => {
-                    powerUp.y += 3 + this.player.speed;
-                    powerUp.rotation += 0.1;
-                    
-                    // Remove off-screen power-ups
-                    if (powerUp.y > this.canvas.height + 50) {
-                        this.powerUps.splice(index, 1);
-                    }
-                    
-                    // Collision with player
-                    if (this.checkCollision(this.player, powerUp)) {
-                        this.createParticle(powerUp.x, powerUp.y, powerUp.type === 'speed' ? '#00ff41' : '#ffa502');
-                        
-                        if (powerUp.type === 'speed') {
-                            this.player.maxSpeed = Math.min(this.player.maxSpeed + 1, 20);
-                        } else {
-                            this.score += 50;
-                        }
-                        
-                        this.powerUps.splice(index, 1);
-                    }
-                });
-                
-                // Update particles
-                this.particles.forEach((particle, index) => {
-                    particle.x += particle.vx;
-                    particle.y += particle.vy;
-                    particle.vx *= 0.95;
-                    particle.vy *= 0.95;
-                    particle.life--;
-                    
-                    if (particle.life <= 0) {
-                        this.particles.splice(index, 1);
-                    }
-                });
-                
-                // Update stats
-                this.distance += this.player.speed * 2;
-                const currentSpeed = Math.round(this.player.speed * 10);
-                this.maxSpeedReached = Math.max(this.maxSpeedReached, currentSpeed);
-                
-                // Update UI
-                document.getElementById('speed').textContent = `Speed: ${currentSpeed} km/h`;
-                document.getElementById('score').textContent = `Score: ${this.score}`;
-                document.getElementById('distance').textContent = `Distance: ${Math.round(this.distance)}m`;
-                
-                // Update speedometer
-                const needle = document.getElementById('needle');
-                const speedPercent = (currentSpeed / 200) * 180 - 90;
-                needle.style.transform = `translate(-50%, -100%) rotate(${speedPercent}deg)`;
-            }
-            
-            checkCollision(rect1, rect2) {
-                return rect1.x < rect2.x + rect2.width &&
-                       rect1.x + rect1.width > rect2.x &&
-                       rect1.y < rect2.y + rect2.height &&
-                       rect1.y + rect1.height > rect2.y;
-            }
-            
-            draw() {
-                // Clear canvas
-                this.ctx.fillStyle = 'linear-gradient(180deg, #87CEEB 0%, #4682B4 30%, #2F4F4F 100%)';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                
-                // Draw road
-                this.ctx.fillStyle = '#333';
-                this.ctx.fillRect(
-                    this.canvas.width / 2 - this.roadWidth / 2,
-                    0,
-                    this.roadWidth,
-                    this.canvas.height
-                );
-                
-                // Draw road lines
-                this.ctx.fillStyle = '#fff';
-                this.roadLines.forEach(line => {
-                    this.ctx.fillRect(
-                        this.canvas.width / 2 - line.width / 2,
-                        line.y,
-                        line.width,
-                        line.height
-                    );
-                });
-                
-                // Draw road edges
-                this.ctx.fillStyle = '#ffff00';
-                this.ctx.fillRect(this.canvas.width / 2 - this.roadWidth / 2 - 5, 0, 5, this.canvas.height);
-                this.ctx.fillRect(this.canvas.width / 2 + this.roadWidth / 2, 0, 5, this.canvas.height);
-                
-                // Draw player car
-                this.drawCar(this.player.x, this.player.y, this.player.width, this.player.height, '#00ff41', true);
-                
-                // Draw enemy cars
-                this.cars.forEach(car => {
-                    this.drawCar(car.x, car.y, car.width, car.height, car.color, false);
-                });
-                
-                // Draw power-ups
-                this.powerUps.forEach(powerUp => {
-                    this.ctx.save();
-                    this.ctx.translate(powerUp.x + powerUp.width / 2, powerUp.y + powerUp.height / 2);
-                    this.ctx.rotate(powerUp.rotation);
-                    
-                    if (powerUp.type === 'speed') {
-                        this.ctx.fillStyle = '#00ff41';
-                        this.ctx.shadowColor = '#00ff41';
-                    } else {
-                        this.ctx.fillStyle = '#ffa502';
-                        this.ctx.shadowColor = '#ffa502';
-                    }
-                    
-                    this.ctx.shadowBlur = 20;
-                    this.ctx.fillRect(-powerUp.width / 2, -powerUp.height / 2, powerUp.width, powerUp.height);
-                    this.ctx.restore();
-                });
-                
-                // Draw particles
-                this.particles.forEach(particle => {
-                    this.ctx.save();
-                    this.ctx.globalAlpha = particle.life / particle.maxLife;
-                    this.ctx.fillStyle = particle.color;
-                    this.ctx.shadowColor = particle.color;
-                    this.ctx.shadowBlur = 10;
-                    this.ctx.beginPath();
-                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-                    this.ctx.fill();
-                    this.ctx.restore();
-                });
-                
-                // Draw speed lines for effect
-                if (this.player.speed > 5) {
-                    this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                    this.ctx.lineWidth = 2;
-                    for (let i = 0; i < 10; i++) {
-                        const x = Math.random() * this.canvas.width;
-                        const y = Math.random() * this.canvas.height;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(x, y);
-                        this.ctx.lineTo(x, y + this.player.speed * 3);
-                        this.ctx.stroke();
-                    }
-                }
-            }
-            
-            drawCar(x, y, width, height, color, isPlayer) {
-                this.ctx.save();
-                
-                // Car shadow
-                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-                this.ctx.fillRect(x + 2, y + 2, width, height);
-                
-                // Car body
-                this.ctx.fillStyle = color;
-                if (isPlayer) {
-                    this.ctx.shadowColor = color;
-                    this.ctx.shadowBlur = 20;
-                }
-                this.ctx.fillRect(x, y, width, height);
-                
-                // Car details
-                this.ctx.fillStyle = isPlayer ? '#fff' : '#222';
-                this.ctx.fillRect(x + 5, y + 10, width - 10, height - 40); // Windshield
-                
-                // Wheels
-                this.ctx.fillStyle = '#000';
-                this.ctx.fillRect(x - 3, y + 5, 6, 15);
-                this.ctx.fillRect(x + width - 3, y + 5, 6, 15);
-                this.ctx.fillRect(x - 3, y + height - 20, 6, 15);
-                this.ctx.fillRect(x + width - 3, y + height - 20, 6, 15);
-                
-                this.ctx.restore();
-            }
-            
-            gameLoop() {
-                this.update();
-                this.draw();
-                
-                if (this.gameRunning) {
-                    requestAnimationFrame(() => this.gameLoop());
-                }
-            }
-            
-            gameOver() {
-                this.gameRunning = false;
-                document.getElementById('finalScore').textContent = this.score;
-                document.getElementById('finalDistance').textContent = Math.round(this.distance);
-                document.getElementById('maxSpeed').textContent = this.maxSpeedReached;
-                document.getElementById('gameOver').style.display = 'block';
-            }
-            
-            restart() {
-                this.gameRunning = true;
-                this.score = 0;
-                this.distance = 0;
-                this.maxSpeedReached = 0;
-                
-                this.player.x = this.canvas.width / 2;
-                this.player.speed = 0;
-                this.player.maxSpeed = 12;
-                
-                this.cars = [];
-                this.powerUps = [];
-                this.particles = [];
-                
-                document.getElementById('gameOver').style.display = 'none';
-                this.gameLoop();
-            }
-        }
-        
-        // Start the game
-        window.addEventListener('load', () => {
-            new NeonRacer();
-        });
-    </script>
+
+    <!-- Center: Main Board -->
+    <div style="position: relative;">
+        <canvas id="tetris" width="300" height="600"></canvas>
+    </div>
+
+    <!-- Right Side: Next & Score -->
+    <div class="side-panel">
+        <div class="stats-box">
+            <div class="label">Next</div>
+            <canvas id="next-canvas" width="100" height="100"></canvas>
+        </div>
+        <div class="stats-box">
+            <div class="label">Score</div>
+            <div id="score" class="value">0</div>
+        </div>
+        <div class="stats-box">
+            <div class="label">Status</div>
+            <div id="status" style="font-weight: bold;">READY</div>
+            <div id="ai-status" class="ai-badge">AI PILOT</div>
+        </div>
+        <button id="ai-toggle" style="margin-top: auto; padding: 10px; cursor: pointer;">Toggle AI (A)</button>
+    </div>
+
+    <div class="controls">
+        <span>WASD/Arrows: Move/Rotate | Space: Hard Drop | C: Hold | A: Toggle AI</span>
+        <span>Super Rotation System (SRS) Active</span>
+    </div>
+</div>
+
+<script src="./game.js">
+</script>
 </body>
 </html>
